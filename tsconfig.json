@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                // Moderne JavaScript-Version
+    "module": "commonjs",             // Standard für Node.js/Express
+    "rootDir": "./",                  // Quellcode-Ordner (inkl. Tests)
+    "outDir": "./dist",               // Kompilierter JavaScript-Ordner
+    "esModuleInterop": true,          // Wichtig für Express-Importe
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,                   // Strenge Typprüfung aktivieren
+    "skipLibCheck": true              // Überspringt die Typprüfung von .d.ts-Dateien
+  },
+  "include": ["src/**/*"]             // Nur Dateien im src-Ordner kompilieren
+}

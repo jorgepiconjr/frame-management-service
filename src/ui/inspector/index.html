@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Session Inspector</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Session Inspector</h1>
+    <div class="controls">
+      <input id="newSessionId" placeholder="new session id (e.g. session-1)" />
+      <button id="createSessionBtn">Create Session</button>
+      <button id="refreshBtn">Refresh Now</button>
+      <label>Poll ms: <input id="pollInterval" value="1000" style="width:80px" /></label>
+      <button id="togglePollBtn">Stop Polling</button>
+    </div>
+    <p class="hint">Use Postman to <span>/api/session/:id</span> and <span>/api/session/:id/event</span> — this page will show cards live.</p>
+  </header>
+
+  <main id="cardsRoot" class="cards"></main>
+
+  <template id="cardTemplate">
+    <article class="card">
+      <div class="card-header">
+        <p>Session-ID:<strong class="sid"></strong></p>
+        <button class="btn-delete">X</button>
+      </div>
+
+      <div class="card-body">
+        <div>State: <span class="state"></span></div>
+        <div>Current Frame:<pre class="frame"></pre></div>
+        <details class="ctx"><summary>Context</summary><pre class="context"></pre></details>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn-send-event">Send Event</button>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="./inspector.js"></script>
+</body>
+</html>
