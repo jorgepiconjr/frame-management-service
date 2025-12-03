@@ -2,12 +2,12 @@
 
 ## Table of Contents
 
-1.  [About the Software]()
-2.  [Technologies Used]()
-3.  [Architecture Overview]()
-4.  [Key Features]()
-5.  [API Reference]()
-6.  [How to Start?]()
+1.  [About the Software](#about-the-software)
+2.  [Technologies Used](#technologies-used)
+3.  [Architecture Overview](#architecture-overview)
+4.  [Key Features](#key-features)
+5.  [API Reference](#api-reference)
+6.  [How to Start?](#how-to-start)
 
 -----
 
