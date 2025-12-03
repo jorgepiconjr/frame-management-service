@@ -1,68 +1,87 @@
 import { EventObject, ActorRef, Snapshot } from 'xstate';
 
 // ----------------------------------------------------
-// Typen und Schnittstellen für die State Machine
-// Hier werden die Kontexte, Events und Snapshots definiert.
+// Types and interfaces for the State Machine
+// Context, events, and snapshots are defined here.
 // ----------------------------------------------------
 
 
 // ----------------------------------------------------
-// 1. CONTEXT: Die Daten, die der State Actor verwaltet
+// 1. CONTEXT: The data managed by the State Actor
 // ----------------------------------------------------
 
-// AnzeigeKontext, um zu wissen, welche Art von Frame derzeit angezeigt wird
+// Display context to know which type of frame is currently displayed
 export type AnzeigeKontext = 'ENTITAET' | 'ALLGEMEIN' | 'NOTFALL' | 'INAKTIV';
 
-// Definiert den vollständigen Zustandskontext (die 'Daten') der Frame Machine.
+// Defines the complete state context (the 'data') of the Frame Machine.
 export interface FrameContext {
-  // Listen-Management
+  // List management
   entitaetListe: string[];
   allgemeineListe: string[];
   notfallListe: string[];
   
-  // Zeiger-Management
+  // Pointer management
   aktuellerEntitaetIndex: number;
   aktuellerAllgemeinIndex: number;
   aktuellerNotfallIndex: number;
   
-  // Definiert, welche Liste derzeit als Quelle dient
+  // Defines which list currently serves as the source
   anzeigeKontext: AnzeigeKontext;
-  // Speichert den aktuellen Frame, der an die UI gesendet wird
+  // Stores the current frame sent to the UI
   aktuellerFrame: string;
-  // Speichert den Zustand, aus dem der Notfall empfangen wurde
+  // Stores the state from which the emergency was received
   herkunftsZustand: string;
 }
 
 // ----------------------------------------------------
-// 2. EVENTS: Alle möglichen Eingaben für die State Machine
+// 2. EVENTS: All possible inputs for the State Machine
 // ----------------------------------------------------
 
-// Definiert alle Events, welche die Maschine verarbeiten kann.
+// Defines all event types as constants for better maintainability.
+export const FrameEventTypes = {
+  // Lifecycle
+  SCHLIESSEN: 'SCHLIESSEN',
+  ZURUCKSETZEN: 'ZURUCKSETZEN',
+  AUSSCHALTEN: 'AUSSCHALTEN',
+  
+  // Navigation
+  NAECHSTER_FRAME: 'NAECHSTER_FRAME',
+  VORHERIGER_FRAME: 'VORHERIGER_FRAME',
+  SUCHE_FRAME: 'SUCHE_FRAME',
+  
+  // Emergency
+  NOTFALL_EMPFANGEN: 'NOTFALL_EMPFANGEN',
+  USER_BESTAETIGT_NOTFALL: 'USER_BESTAETIGT_NOTFALL',
+  
+  // Data
+  LADE_NEUE_LISTE: 'LADE_NEUE_LISTE',
+} as const;
+
+// Defines all events that the machine can process.
 export type FrameEvent =
-  // Lebenszyklus-Events
-  | { type: 'SCHLIESSEN' }
-  | { type: 'ZURUCKSETZEN' }
-  | { type: 'AUSSCHALTEN' }
+  // Lifecycle events
+  | { type: typeof FrameEventTypes.SCHLIESSEN }
+  | { type: typeof FrameEventTypes.ZURUCKSETZEN }
+  | { type: typeof FrameEventTypes.AUSSCHALTEN }
 
-  // Navigations-Events
-  | { type: 'NAECHSTER_FRAME' }
-  | { type: 'VORHERIGER_FRAME' }
-  | { type: 'SUCHE_FRAME', frameName: string }
+  // Navigation events
+  | { type: typeof FrameEventTypes.NAECHSTER_FRAME }
+  | { type: typeof FrameEventTypes.VORHERIGER_FRAME }
+  | { type: typeof FrameEventTypes.SUCHE_FRAME; frameName: string }
 
-  // Notfall-Events
-  | { type: 'NOTFALL_EMPFANGEN'; notfallListe: string[] }
-  | { type: 'USER_BESTAETIGT_NOTFALL'; bestaetigung: boolean }
+  // Emergency events
+  | { type: typeof FrameEventTypes.NOTFALL_EMPFANGEN; list: string[] }
+  | { type: typeof FrameEventTypes.USER_BESTAETIGT_NOTFALL; accepted: boolean }
 
-  // Daten-Events
-  | { type: 'LADE_NEUE_LISTE'; liste: string[]; kontext: 'ENTITAET' | 'ALLGEMEIN' }
-;
+  // Data events
+  | { type: typeof FrameEventTypes.LADE_NEUE_LISTE; list: string[]; context: 'ENTITAET' | 'ALLGEMEIN' };
 
 // ----------------------------------------------------
-// 3. TYP-DEFINITIONEN: Machine-Typen
+// 3. TYPE DEFINITIONS: Machine Types
 // ----------------------------------------------------
 
-// Ein Typ-Alias für die Definition der Frame Machine (Konfiguration).
-// Dies hilft bei der Typensicherheit und Klarheit im Code.
+// A type alias for the Frame Machine definition (configuration).
+// This helps with type safety and clarity in the code.
 export type FrameMachineDefinition = {
     context: FrameContext,
     events: FrameEvent
@@ -70,9 +89,9 @@ export type FrameMachineDefinition = {
 };
 
 /**
- * Definiert die saubere, serialisierbare Snapshot-Struktur,
- * die an den Client (CAIS.ME) gesendet wird.
- * Dies ist die 'öffentliche' Sicht auf den Zustand.
+ * Defines the clean, serializable snapshot structure
+ * sent to the client (CAIS.ME).
+ * This is the 'public' view of the state.
  */
 export interface CleanSnapshot {
   currentState: unknown;

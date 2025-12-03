@@ -1,7 +1,7 @@
 /**
- * Konfigurationsdatei für den Frame Management Service.
- * Trennt Konfiguration (wie Ports) vom Code.
- * Diese Datei kann erweitert werden, um weitere Konfigurationsoptionen hinzuzufügen.
+ * Configuration file for the Frame Management Service.
+ * Separates configuration (such as ports) from code.
+ * This file can be extended to add additional configuration options.
  */
 export const config = {
   port: process.env.PORT || 3000,

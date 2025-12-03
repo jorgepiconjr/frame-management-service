@@ -1,13 +1,13 @@
 // -------------------------------------------------
-// Inspector UI für Sitzungen
-// Hier kommen die Funktionen und Logik für den Inspektor
-// der die UI für Sitzungen verwaltet und anzeigt.
+// GUI for session management
+// Here come the functions and logic for the inspector
+// that manages and displays the UI for sessions.
 // http://localhost:3000/inspector
 // -------------------------------------------------
 
 const API_BASE = '/api';
 
-// DOM-Elemente
+// DOM elements
 const cardsRoot = document.getElementById('cardsRoot');
 const template = document.getElementById('cardTemplate');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -20,15 +20,14 @@ let pollTimer = null;
 let known = new Map(); // sessionId -> DOM element
 
 /**
- * Sitzungen vom Server (/api/session/sessions) abrufen
- * @returns {Promise<CleanSnapshot[]>} Liste der Sitzungen
+ * Fetch all sessions from server (/api/session/sessions)
+ * @returns {Promise<CleanSnapshot[]>} List of sessions
  */
 async function fetchSessions() {
   try {
     const res = await fetch(`${API_BASE}/session/sessions`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
-    // normalize: expect { count, sessions: CleanSnapshot[] } or array
     let sessions = [];
     if (Array.isArray(body)) sessions = body;
     else if (body && Array.isArray(body.sessions)) sessions = body.sessions;
@@ -45,17 +44,17 @@ async function fetchSessions() {
 }
 
 /**
- * Function zum "Verschönern" von Werten für die Anzeige
- * @param {any} v Wert 
- * @returns {string} "Verschönerter" String
+ * Function to prettify values for display
+ * @param {any} v Value 
+ * @returns {string} Prettified string
  */
 function pretty(v) {
   try { return JSON.stringify(v, null, 2); } catch { return String(v); }
 }
 
 /**
- * Funktion zum Erstellen oder Aktualisieren einer Karten-DOM für eine Sitzung
- * @param {CleanSnapshot} snap Sitzungssnapshot
+ * Function to create or update a card DOM for a session
+ * @param {CleanSnapshot} snap Session snapshot
  * @return {void} 
  */
 function createOrUpdateCard(snap) {
@@ -76,7 +75,7 @@ function createOrUpdateCard(snap) {
 }
 
 /**
- * Funktion zum Entfernen von Karten für Sitzungen, die nicht mehr existieren
+ * Function to remove cards for sessions that no longer exist
  * @param {CleanSnapshot[]} currentSessions 
  * @return {void}
  */
@@ -92,7 +91,7 @@ function removeMissingSessions(currentSessions) {
 }
 
 /**
- * Funktion zum sofortigen Aktualisieren der Sitzungskarten
+ * Function to immediately refresh the session cards
  * @return {Promise<void>}
  */
 async function refreshNow() {
@@ -102,7 +101,7 @@ async function refreshNow() {
 }
 
 /**
- * Funktion zum Erstellen einer neuen Sitzung
+ * Function to create a new session
  * @returns {Promise<void>}
  */
 async function createSession() {
@@ -119,8 +118,8 @@ async function createSession() {
 }
 
 /**
- * Funktion zum Löschen einer Sitzung
- * @param {string} id Sitzungs-ID
+ * Function to delete a session
+ * @param {string} id Session ID
  * @returns {Promise<void>}
  */
 async function deleteSession(id) {
@@ -133,8 +132,9 @@ async function deleteSession(id) {
   await refreshNow();
 }
 
-/** Funktion zum Eingeben und Senden eines Ereignisses an eine Sitzung
- * @param {string} sessionId Sitzungs-ID
+/**
+ * Function to prompt and send an event to a session
+ * @param {string} sessionId Session ID
  * @returns {Promise<void>}
  */
 async function promptAndSendEvent(sessionId) {
@@ -158,7 +158,7 @@ async function promptAndSendEvent(sessionId) {
   createOrUpdateCard(newSnap);
 }
 
-// Event-Listener
+// Event listeners
 refreshBtn.addEventListener('click', refreshNow);
 createBtn.addEventListener('click', createSession);
 togglePollBtn.addEventListener('click', () => {
@@ -167,7 +167,7 @@ togglePollBtn.addEventListener('click', () => {
 });
 
 /**
- * Funktion zum Starten/Stoppen des Pollings
+ * Function to start/stop polling
  * @param {number} ms 
  * @returns 
  */

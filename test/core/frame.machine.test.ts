@@ -4,68 +4,68 @@ import { frameMachine } from '../../src/core/frame.machine';
 
 /* --------------------------------------------------------------
   FRAME MACHINE TESTS
-  Diese Tests konzentrieren sich auf die Logik und Zustandsübergänge der frame.machine.ts.
-  Sie stellen sicher, dass die Maschine korrekt auf verschiedene Ereignisse reagiert
-  und die erwarteten Zustandsübergänge und Logik durchführt.
+  These tests focus on the logic and state transitions of frame.machine.ts.
+  They ensure that the machine responds correctly to various events
+  and performs the expected state transitions and logic.
 -------------------------------------------------------------- */
 
-describe('frameMachine NotfallModus', () => {
+describe('frameMachine EmergencyMode', () => {
 
   // =======================================================
-  // TESTS FOR NOTFALL MODUS TRANSITIONS 
+  // TESTS FOR EMERGENCY MODE TRANSITIONS 
   // =======================================================
 
-  // TEST 1: Korrigiert - Benutzer lehnt Notfall ab
-  it('should transition to Inaktiv when USER_BESTAETIGT_NOTFALL is sent with bestaetigung: false', async () => {
+  // TEST 1: Corrected - User rejects emergency
+  it('should transition to Inaktiv when USER_BESTAETIGT_NOTFALL is sent with accepted: false', async () => {
     const actor = createActor(frameMachine).start();
-    actor.send({ type: 'NOTFALL_EMPFANGEN', notfallListe: ['EMERGENCY'] });
+    actor.send({ type: 'NOTFALL_EMPFANGEN', list: ['EMERGENCY'] });
 
-    // Warte, bis die Maschine im Bestätigungszustand angekommen ist
+    // Wait until the machine reaches the confirmation state
     await waitFor(actor, (snapshot) => snapshot.matches({ NotfallModus: 'Bestaetigen' }));
     
-    // Sende die 'nein'-Antwort des Benutzers
-    actor.send({ type: 'USER_BESTAETIGT_NOTFALL', bestaetigung: false });
+    // Send the user's 'no' response
+    actor.send({ type: 'USER_BESTAETIGT_NOTFALL', accepted: false });
 
-    // Warte, bis die Maschine nach dem internen 'raise' den Endzustand 'Inaktiv' erreicht
+    // Wait until the machine reaches the final state 'Inaktiv' after the internal 'raise'
     const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches('Inaktiv'));
 
     expect(finalSnapshot.value).toBe('Inaktiv');
   });
 
-  // TEST 2: Korrigiert - Benutzer bestätigt Notfall
-  it('should transition to NotfallModus.Anzeigen when USER_BESTAETIGT_NOTFALL is sent with bestaetigung: true', async () => {
+  // TEST 2: Corrected - User confirms emergency
+  it('should transition to NotfallModus.Anzeigen when USER_BESTAETIGT_NOTFALL is sent with accepted: true', async () => {
     const actor = createActor(frameMachine).start();
-    actor.send({ type: 'NOTFALL_EMPFANGEN', notfallListe: ['EMERGENCY'] });
+    actor.send({ type: 'NOTFALL_EMPFANGEN', list: ['EMERGENCY'] });
 
     await waitFor(actor, (snapshot) => snapshot.matches({ NotfallModus: 'Bestaetigen' }));
 
-    actor.send({ type: 'USER_BESTAETIGT_NOTFALL', bestaetigung: true });
+    actor.send({ type: 'USER_BESTAETIGT_NOTFALL', accepted: true });
 
-    // In diesem Fall ist der Übergang direkt, aber die Verwendung von waitFor ist weiterhin Best Practice.
+    // In this case the transition is direct, but using waitFor is still best practice.
     const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches({ NotfallModus: 'Anzeigen' }));
     
     expect(finalSnapshot.value).toEqual({ NotfallModus: 'Anzeigen' });
   });
 
-  // TEST 3: Korrigiert - SCHLIESSEN aus Notfall, wenn Ursprung Inaktiv war
+  // TEST 3: Corrected - CLOSE from emergency if origin was Inaktiv
   it('should return to Inaktiv when SCHLIESSEN is sent from NotfallModus if origin was Inaktiv', async () => {
     const actor = createActor(frameMachine).start();
 
-    // Stelle sicher, dass wir in 'Inaktiv' starten
+    // Ensure we start in 'Inaktiv'
     expect(actor.getSnapshot().matches('Inaktiv')).toBe(true);
     
-    // Löse den Notfall aus
-    actor.send({ type: 'NOTFALL_EMPFANGEN', notfallListe: ['EMERGENCY'] });
+    // Trigger the emergency
+    actor.send({ type: 'NOTFALL_EMPFANGEN', list: ['EMERGENCY'] });
     await waitFor(actor, (snapshot) => snapshot.matches('NotfallModus'));
     
-    // Sende das Schließen-Ereignis
+    // Send the close event
     actor.send({ type: 'SCHLIESSEN' });
 
-    // Warte, bis die Maschine zu Inaktiv zurückkehrt
+    // Wait until the machine returns to Inaktiv
     const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches('Inaktiv'));
 
     expect(finalSnapshot.value).toBe('Inaktiv');
-    // Prüfe außerdem, dass der Ursprungs-Kontext korrekt verwendet wurde
+    // Also check that the origin context was used correctly
     expect(finalSnapshot.context.herkunftsZustand).toBe('Inaktiv');
   });
 
@@ -73,227 +73,227 @@ describe('frameMachine NotfallModus', () => {
   // TESTS FOR HISTORY STATE FUNCTIONALITY
   // =======================================================
 
-  // TEST 4: NEU - Rückkehr zu ArbeitsModus.ENTITAET nach Unterbrechung
+  // TEST 4: NEW - Return to ArbeitsModus.ENTITAET after interruption
   it('should return to ArbeitsModus.ENTITAET after emergency if it was interrupted there', async () => {
     const actor = createActor(frameMachine).start();
 
-    // 1. Lege die Maschine in den spezifischen Zustand, zu dem wir zurückkehren wollen
-    actor.send({ type: 'LADE_NEUE_LISTE', liste: ['patient1', 'patient2'], kontext: 'ENTITAET' });
-    await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'ENTITAET' } as any));
+    // 1. Place the machine in the specific state we want to return to
+    actor.send({ type: 'LADE_NEUE_LISTE', list: ['patient1', 'patient2'], context: 'ENTITAET' });
+    await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'Entitaet' } as any));
     
-    // Prüfe, dass wir uns tatsächlich im richtigen Zustand befinden
-    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'ENTITAET' });
+    // Check that we are actually in the correct state
+    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'Entitaet' });
 
-    // 2. Löse die Unterbrechung aus
-    actor.send({ type: 'NOTFALL_EMPFANGEN', notfallListe: ['EMERGENCY'] });
+    // 2. Trigger the interruption
+    actor.send({ type: 'NOTFALL_EMPFANGEN', list: ['EMERGENCY'] });
     await waitFor(actor, (snapshot) => snapshot.matches('NotfallModus'));
 
-    // Prüfe, dass der Ursprungszustand korrekt im Kontext gespeichert wurde
+    // Check that the origin state was correctly stored in the context
     expect(actor.getSnapshot().context.herkunftsZustand).toBe('ArbeitsModus');
 
-    // 3. Sende das SCHLIESSEN-Ereignis, um den Notfallmodus zu verlassen
+    // 3. Send the CLOSE event to exit emergency mode
     actor.send({ type: 'SCHLIESSEN' });
 
-    // 4. Warte, bis die Maschine in den korrekten History-Zustand zurückkehrt
-    const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'ENTITAET' } as any));
+    // 4. Wait until the machine returns to the correct history state
+    const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'Entitaet' } as any));
 
-    // 5. Stelle sicher, dass wir wieder dort sind, wo wir gestartet haben
-    expect(finalSnapshot.value).toEqual({ ArbeitsModus: 'ENTITAET' });
+    // 5. Ensure we are back where we started
+    expect(finalSnapshot.value).toEqual({ ArbeitsModus: 'Entitaet' });
   });
 
-  // TEST 5: NEU - Rückkehr zu ArbeitsModus.ALLGEMEIN nach Unterbrechung
-  it('should return to ArbeitsModus.ALLGEMEIN after emergency if it was interrupted there', async () => {
+  // TEST 5: NEW - Return to ArbeitsModus.Allgemein after interruption
+  it('should return to ArbeitsModus.Allgemein after emergency if it was interrupted there', async () => {
     const actor = createActor(frameMachine).start();
 
-    // 1. Lege die Maschine zuerst in ENTITAET, dann wechsle zu ALLGEMEIN
-    actor.send({ type: 'LADE_NEUE_LISTE', liste: ['patient1'], kontext: 'ENTITAET' });
+    // 1. First place the machine in ENTITAET, then switch to Allgemein
+    actor.send({ type: 'LADE_NEUE_LISTE', list: ['patient1'], context: 'ENTITAET' });
 
-    await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'ENTITAET' } as any));
+    await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'Entitaet' } as any));
 
-    // Prüfe, dass wir uns tatsächlich im richtigen Zustand befinden
-    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'ENTITAET' });
+    // Check that we are actually in the correct state
+    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'Entitaet' });
   
-    actor.send({ type: 'LADE_NEUE_LISTE', liste: ['general1'], kontext: 'ALLGEMEIN' });
+    actor.send({ type: 'LADE_NEUE_LISTE', list: ['general1'], context: 'ALLGEMEIN' });
 
-    await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'ALLGEMEIN' } as any));
+    await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'Allgemein' } as any));
     
-    // Prüfe, dass wir im richtigen Subzustand sind
-    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'ALLGEMEIN' });
+    // Check that we are in the correct substate
+    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'Allgemein' });
 
-    // 2. Löse die Unterbrechung aus
-    actor.send({ type: 'NOTFALL_EMPFANGEN', notfallListe: ['EMERGENCY'] });
+    // 2. Trigger the interruption
+    actor.send({ type: 'NOTFALL_EMPFANGEN', list: ['EMERGENCY'] });
 
     await waitFor(actor, (snapshot) => snapshot.matches('NotfallModus'));
     expect(actor.getSnapshot().context.herkunftsZustand).toBe('ArbeitsModus');
 
-    // 3. Sende das SCHLIESSEN-Ereignis
+    // 3. Send the CLOSE event
     actor.send({ type: 'SCHLIESSEN' });
 
-    // 4. Warte, bis die Maschine in den ALLGEMEIN-History-Zustand zurückkehrt
-    const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'ALLGEMEIN' } as any));
+    // 4. Wait until the machine returns to the Allgemein history state
+    const finalSnapshot = await waitFor(actor, (snapshot) => snapshot.matches({ ArbeitsModus: 'Allgemein' } as any));
 
-    // 5. Stelle sicher, dass wir wieder im korrekten Subzustand sind
-    expect(finalSnapshot.value).toEqual({ ArbeitsModus: 'ALLGEMEIN' });
+    // 5. Ensure we are back in the correct substate
+    expect(finalSnapshot.value).toEqual({ ArbeitsModus: 'Allgemein' });
   });
 });
 
 describe('Frame Machine Logic & Scenarios', () => {
 
   // ---------------------------------------------------------
-  // SZENARIO 1: Standard-Workflow (Entität)
+  // SCENARIO 1: Standard workflow (Entity)
   // ---------------------------------------------------------
-  it('Szenario 1: Sollte eine Liste laden und durch Frames navigieren (NAECHSTER_FRAME, VORHERIGER_FRAME) in Zustand \'ENTITAET\'', () => {
+  it('Scenario 1: Should load a list and navigate through frames (NEXT_FRAME, PREVIOUS_FRAME) in state \'ENTITAET\'', () => {
     const actor = createActor(frameMachine).start();
     
-    // 1. Initialzustand
+    // 1. Initial state
     expect(actor.getSnapshot().value).toBe('Inaktiv');
 
-    // 2. Liste laden (Übergang zu ArbeitsModus.ENTITAET)
+    // 2. Load list (transition to ArbeitsModus.ENTITAET)
     const testListe = ['E1', 'E2', 'E3'];
     actor.send({ 
       type: 'LADE_NEUE_LISTE', 
-      liste: testListe, 
-      kontext: 'ENTITAET' 
+      list: testListe, 
+      context: 'ENTITAET' 
     });
 
     const snap1 = actor.getSnapshot();
-    // Prüfen auf Verbundzustand { ArbeitsModus: 'ENTITAET' }
-    expect(snap1.value).toEqual({ ArbeitsModus: 'ENTITAET' });
+    // Check for compound state { ArbeitsModus: 'Entitaet' }
+    expect(snap1.value).toEqual({ ArbeitsModus: 'Entitaet' });
     expect(snap1.context.entitaetListe).toEqual(testListe);
     expect(snap1.context.aktuellerFrame).toBe('E1'); // Index 0
 
-    // 3. Navigation: Nächster Frame
+    // 3. Navigation: Next frame
     actor.send({ type: 'NAECHSTER_FRAME' });
     const snap2 = actor.getSnapshot();
     expect(snap2.context.aktuellerEntitaetIndex).toBe(1);
     expect(snap2.context.aktuellerFrame).toBe('E2');
 
-    // 4. Navigation: Vorheriger Frame
+    // 4. Navigation: Previous frame
     actor.send({ type: 'VORHERIGER_FRAME' });
     const snap3 = actor.getSnapshot();
     expect(snap3.context.aktuellerFrame).toBe('E1');
   });
 
   // ---------------------------------------------------------
-  // SZENARIO 2: Listen-Wechsel (Entität -> Allgemein)
+  // SCENARIO 2: List switching (Entity -> General)
   // ---------------------------------------------------------
-  it('Szenario 2: Sollte zwischen Entität und Allgemein wechseln', () => {
+  it('Scenario 2: Should switch between Entity and General', () => {
     const actor = createActor(frameMachine).start();
 
-    // Start mit Entität
-    actor.send({ type: 'LADE_NEUE_LISTE', liste: ['E1'], kontext: 'ENTITAET' });
-    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'ENTITAET' });
+    // Start with Entity
+    actor.send({ type: 'LADE_NEUE_LISTE', list: ['E1'], context: 'ENTITAET' });
+    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'Entitaet' });
 
-    // Wechsel zu Allgemein
-    actor.send({ type: 'LADE_NEUE_LISTE', liste: ['A1', 'A2'], kontext: 'ALLGEMEIN' });
+    // Switch to General
+    actor.send({ type: 'LADE_NEUE_LISTE', list: ['A1', 'A2'], context: 'ALLGEMEIN' });
     
     const snap = actor.getSnapshot();
-    expect(snap.value).toEqual({ ArbeitsModus: 'ALLGEMEIN' });
+    expect(snap.value).toEqual({ ArbeitsModus: 'Allgemein' });
     expect(snap.context.anzeigeKontext).toBe('ALLGEMEIN');
     expect(snap.context.aktuellerFrame).toBe('A1');
   });
 
   // ---------------------------------------------------------
-  // SZENARIO 3: Notfall-Unterbrechung & History (Komplex)
+  // SCENARIO 3: Emergency interruption & history (Complex)
   // ---------------------------------------------------------
-  it('Szenario 3: Sollte Notfall behandeln und zum korrekten Sub-Zustand in \'ArbeitsModus\' zurückkehren', () => {
+  it('Scenario 3: Should handle emergency and return to the correct sub-state in \'ArbeitsModus\'', () => {
     const actor = createActor(frameMachine).start();
 
-    // 1. Wir starten im Modus ALLGEMEIN
-    actor.send({ type: 'LADE_NEUE_LISTE', liste: ['A1', 'A2'], kontext: 'ALLGEMEIN' });
-    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'ALLGEMEIN' });
+    // 1. We start in General mode
+    actor.send({ type: 'LADE_NEUE_LISTE', list: ['A1', 'A2'], context: 'ALLGEMEIN' });
+    expect(actor.getSnapshot().value).toEqual({ ArbeitsModus: 'Allgemein' });
 
-    // 2. Notfall tritt ein
-    const notfallListe = ['N1', 'N2'];
-    actor.send({ type: 'NOTFALL_EMPFANGEN', notfallListe });
+    // 2. Emergency occurs
+    const list = ['N1', 'N2'];
+    actor.send({ type: 'NOTFALL_EMPFANGEN', list });
 
     const snapNotfall = actor.getSnapshot();
-    // Muss im Substate 'Bestaetigen' sein
+    // Must be in the 'Bestaetigen' substate
     expect(snapNotfall.value).toEqual({ NotfallModus: 'Bestaetigen' }); 
-    expect(snapNotfall.context.notfallListe).toEqual(notfallListe);
+    expect(snapNotfall.context.notfallListe).toEqual(list);
 
-    // 3. User bestätigt Notfall (-> Anzeigen)
-    actor.send({ type: 'USER_BESTAETIGT_NOTFALL', bestaetigung: true });
+    // 3. User confirms emergency (-> Anzeigen)
+    actor.send({ type: 'USER_BESTAETIGT_NOTFALL', accepted: true });
     expect(actor.getSnapshot().value).toEqual({ NotfallModus: 'Anzeigen' });
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('N1');
 
-    // 4. Notfall wird beendet (Systemseitig)
-    actor.send({ type: 'SCHLIESSEN' }); // Dies löst den History-Übergang aus
+    // 4. Emergency is ended (system-side)
+    actor.send({ type: 'SCHLIESSEN' }); // This triggers the history transition
 
-    // 5. PRÜFUNG: Sind wir wieder in ALLGEMEIN? (History Check)
+    // 5. CHECK: Are we back in General? (History check)
     const snapReturn = actor.getSnapshot();
-    expect(snapReturn.value).toEqual({ ArbeitsModus: 'ALLGEMEIN' });
+    expect(snapReturn.value).toEqual({ ArbeitsModus: 'Allgemein' });
     expect(snapReturn.context.anzeigeKontext).toBe('ALLGEMEIN');
   });
 });
 
 // ---------------------------------------------------------
-// SZENARIO 4: Suchfunktionalität (event: SUCHE_FRAME)
+// SCENARIO 4: Search functionality (event: SUCHE_FRAME)
 // ---------------------------------------------------------
-describe('Test Suchfunktionalität (event: SUCHE_FRAME) für zukünftige Spracheeingabe', () => {
+describe('Test search functionality (event: SUCHE_FRAME) for future voice input', () => {
 
-  it('sollte im ENTITAET-Modus einen existierenden Frame finden und dahin springen', () => {
-    // 1. Maschine starten
+  it('should find and jump to an existing frame in ENTITAET mode', () => {
+    // 1. Start machine
     const actor = createActor(frameMachine);
     actor.start();
 
-    // 2. Liste laden (Startzustand herstellen)
+    // 2. Load list (establish initial state)
     actor.send({
       type: 'LADE_NEUE_LISTE',
-      kontext: 'ENTITAET',
-      liste: ['FrameA', 'FrameB', 'FrameC', 'FrameD']
+      context: 'ENTITAET',
+      list: ['FrameA', 'FrameB', 'FrameC', 'FrameD']
     });
 
-    // Check: Start ist Index 0 ('FrameA')
+    // Check: Start is index 0 ('FrameA')
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('FrameA');
     expect(actor.getSnapshot().context.aktuellerEntitaetIndex).toBe(0);
 
-    // 3. Aktion: Suche nach 'FrameC'
+    // 3. Action: Search for 'FrameC'
     actor.send({ type: 'SUCHE_FRAME', frameName: 'FrameC' });
 
-    // 4. Erwartung: Frame ist jetzt 'FrameC', Index ist 2
+    // 4. Expectation: Frame is now 'FrameC', index is 2
     const snapshot = actor.getSnapshot();
     expect(snapshot.context.aktuellerFrame).toBe('FrameC');
     expect(snapshot.context.aktuellerEntitaetIndex).toBe(2);
   });
 
-  it('sollte im ENTITAET-Modus NICHT springen, wenn Frame nicht gefunden wird', () => {
+  it('should NOT jump in ENTITAET mode if frame is not found', () => {
     const actor = createActor(frameMachine);
     actor.start();
 
     actor.send({
       type: 'LADE_NEUE_LISTE',
-      kontext: 'ENTITAET',
-      liste: ['FrameA', 'FrameB']
+      context: 'ENTITAET',
+      list: ['FrameA', 'FrameB']
     });
 
-    // Wir sind bei FrameA
+    // We are at FrameA
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('FrameA');
 
-    // Suche nach nicht existentem Frame
+    // Search for non-existent frame
     actor.send({ type: 'SUCHE_FRAME', frameName: 'FrameC' });
 
-    // Erwartung: Alles bleibt wie vorher
+    // Expectation: Everything stays as before
     const snapshot = actor.getSnapshot();
     expect(snapshot.context.aktuellerFrame).toBe('FrameA');
     expect(snapshot.context.aktuellerEntitaetIndex).toBe(0);
   });
 
-  it('sollte im ALLGEMEIN-Modus funktionieren', () => {
-    // Maschine starten
+  it('should work in General mode', () => {
+    // Start machine
     const actor = createActor(frameMachine);
     actor.start();
 
-    // Wir wechseln in den ALLGEMEIN Modus
+    // We switch to General mode
     actor.send({
       type: 'LADE_NEUE_LISTE',
-      kontext: 'ALLGEMEIN',
-      liste: ['Info1', 'Info2', 'Info3']
+      context: 'ALLGEMEIN',
+      list: ['Info1', 'Info2', 'Info3']
     });
 
-    expect(actor.getSnapshot().matches({ ArbeitsModus: 'ALLGEMEIN' })).toBe(true);
+    expect(actor.getSnapshot().matches({ ArbeitsModus: 'Allgemein' })).toBe(true);
 
-    // Suche nach 'Info3'
+    // Search for 'Info3'
     actor.send({ type: 'SUCHE_FRAME', frameName: 'Info3' });
 
     const snapshot = actor.getSnapshot();
@@ -301,28 +301,28 @@ describe('Test Suchfunktionalität (event: SUCHE_FRAME) für zukünftige Sprache
     expect(snapshot.context.aktuellerAllgemeinIndex).toBe(2);
   });
 
-  it('sollte im NOTFALL-Modus (Status Anzeigen) funktionieren', () => {
-    // Maschine starten
+  it('should work in EMERGENCY mode (status Anzeigen)', () => {
+    // Start machine
     const actor = createActor(frameMachine);
     actor.start();
 
-    // 1. Notfall empfangen
+    // 1. Receive emergency
     actor.send({
       type: 'NOTFALL_EMPFANGEN',
-      notfallListe: ['Alarm1', 'Alarm2', 'Alarm3']
+      list: ['Alarm1', 'Alarm2', 'Alarm3']
     });
 
-    // 2. Notfall bestätigen (um in den State "Anzeigen" zu kommen)
+    // 2. Confirm emergency (to get into the "Anzeigen" state)
     actor.send({
       type: 'USER_BESTAETIGT_NOTFALL',
-      bestaetigung: true
+      accepted: true
     });
 
-    // Sicherstellen, dass wir im richtigen State sind
+    // Ensure we are in the correct state
     expect(actor.getSnapshot().matches({ NotfallModus: 'Anzeigen' })).toBe(true);
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('Alarm1');
 
-    // 3. Suche ausführen
+    // 3. Perform search
     actor.send({ type: 'SUCHE_FRAME', frameName: 'Alarm2' });
 
     const snapshot = actor.getSnapshot();
@@ -330,51 +330,51 @@ describe('Test Suchfunktionalität (event: SUCHE_FRAME) für zukünftige Sprache
     expect(snapshot.context.aktuellerNotfallIndex).toBe(1);
   });
 
-  it('sollte im NOTFALL-Modus (Status Bestaetigen) die Suche IGNORIEREN', () => {
-    // Maschine starten
+  it('should IGNORE search in EMERGENCY mode (status Bestaetigen)', () => {
+    // Start machine
     const actor = createActor(frameMachine);
     actor.start();
 
-    // Notfall empfangen
+    // Receive emergency
     actor.send({
       type: 'NOTFALL_EMPFANGEN',
-      notfallListe: ['Alarm1', 'Alarm2']
+      list: ['Alarm1', 'Alarm2']
     });
 
-    // Wir sind jetzt in 'NotfallModus.Bestaetigen' (noch nicht 'Anzeigen')
+    // We are now in 'NotfallModus.Bestaetigen' (not yet 'Anzeigen')
     expect(actor.getSnapshot().matches({ NotfallModus: 'Bestaetigen' })).toBe(true);
     
-    // Wir versuchen zu suchen, obwohl wir noch bestätigen müssen
+    // We try to search, even though we still need to confirm
     actor.send({ type: 'SUCHE_FRAME', frameName: 'Alarm2' });
 
     const snapshot = actor.getSnapshot();
-    // Die Suche sollte keinen Effekt haben, da das Event in diesem State nicht definiert ist
-    // Der Frame sollte immer noch der Bestätigungs-Frame sein
+    // The search should have no effect since the event is not defined in this state
+    // The frame should still be the confirmation frame
     expect(snapshot.context.aktuellerFrame).toBe('BESTAETIGUNG_FRAME'); 
     expect(snapshot.context.aktuellerNotfallIndex).toBe(0);
   });
 
-  it('sollte korrekt umschalten, wenn man zwischen Listen wechselt', () => {
-    // Maschine starten
+  it('should switch correctly when changing between lists', () => {
+    // Start machine
     const actor = createActor(frameMachine);
     actor.start();
 
-    // Erst Entität laden
-    actor.send({ type: 'LADE_NEUE_LISTE', kontext: 'ENTITAET', liste: ['E1', 'E2'] });
+    // First load Entity
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ENTITAET', list: ['E1', 'E2'] });
     
-    // Dann Allgemein laden
-    actor.send({ type: 'LADE_NEUE_LISTE', kontext: 'ALLGEMEIN', liste: ['A1', 'A2', 'A3'] });
+    // Then load General
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ALLGEMEIN', list: ['A1', 'A2', 'A3'] });
 
-    // Suche im Allgemein-Kontext
+    // Search in General context
     actor.send({ type: 'SUCHE_FRAME', frameName: 'A2' });
     
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('A2');
     expect(actor.getSnapshot().context.aktuellerAllgemeinIndex).toBe(1);
 
-    // Zurück zu Entität wechseln
-    actor.send({ type: 'LADE_NEUE_LISTE', kontext: 'ENTITAET', liste: ['E1', 'E2'] });
+    // Switch back to Entity
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ENTITAET', list: ['E1', 'E2'] });
 
-    // Suche im Entität-Kontext (sollte nicht in der alten Allgemein-Liste suchen)
+    // Search in Entity context (should not search in the old General list)
     actor.send({ type: 'SUCHE_FRAME', frameName: 'E2' });
 
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('E2');

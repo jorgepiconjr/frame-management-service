@@ -1,15 +1,19 @@
-import { setup, createMachine, assign, raise } from 'xstate';
+import { setup, assign, raise } from 'xstate';
 import type { FrameContext, FrameMachineDefinition } from './machine.types';
+
+// Frame fallback constants
+const LEERER_FRAME = 'LEERER_FRAME';
+const BESTAETIGUNG_FRAME = 'BESTAETIGUNG_FRAME';
 
 // ----------------------------------------------------
 // FRAME STATE MACHINE DEFINITION
-// Diese Datei definiert die State Machine für das Frame-Management-Service
-// mit XState 5 setup() API.
+// This file defines the State Machine for the Frame Management Service
+// with XState 5 setup() API.
 // ----------------------------------------------------
 
 /**
- * 1. Initialer Kontext
- * Definiert die Startwerte für den Maschinenkontext
+ * 1. Initial Context
+ * Defines the starting values for the machine context
  */
 export const initialContext: FrameContext = {
   entitaetListe: [],
@@ -20,10 +24,10 @@ export const initialContext: FrameContext = {
   aktuellerNotfallIndex: 0,
   anzeigeKontext: 'INAKTIV',
   aktuellerFrame: '',
-  herkunftsZustand: 'Inaktiv', // Trackt den Ursprungszustand für Notfallmodus-Logik
+  herkunftsZustand: 'Inaktiv', // Tracks the source state for emergency mode logic
 };
 
-// Hilfsfunktion, um den aktiven Kontext basierend auf anzeigeKontext zu erhalten
+// Helper function to get the active context based on anzeigeKontext
 const getActiveContext = (context: FrameContext) => {
   switch (context.anzeigeKontext) {
     case 'ENTITAET':
@@ -50,50 +54,53 @@ const getActiveContext = (context: FrameContext) => {
 };
 
 /**
- * 2. Erstellung der State Machine mit XState 5 setup()
- * und Definition von Aktionen, Guards und Typen
+ * 2. State Machine Creation with XState 5 setup()
+ * and Definition of Actions, Guards and Types
  */
 export const frameMachine = setup({
-  // Typsicherheit, definiert die Typen für Kontext, Events und Maschinenstruktur
+  // Type safety, defines types for context, events and machine structure
   types: {} as FrameMachineDefinition,
 
-  // ---- Aktionen ----
-  // Aktionen aktualisieren den Kontext oder führen Nebenwirkungen aus
+  // ---- Actions ----
+  // Actions update the context or perform side effects
   actions: {
-    // ---- Kontext-Aktualisierungsaktionen ----
-    // Lädt eine neue Liste in den Kontext und setzt den Index zurück
-    setNeueListe: assign(({ event }) => {
+    // ---- Context Update Actions ----
+    // Loads a new list into the context and resets the index
+    setNewList: assign(({ event }) => {
       if (event.type !== 'LADE_NEUE_LISTE') return {};
 
       const updates: Partial<FrameContext> = {};
-      const firstFrame = event.liste[0] ?? 'LEERER_FRAME';
+      const firstFrame = event.list[0] ?? LEERER_FRAME;
 
-      if (event.kontext === 'ENTITAET') {
-        updates.entitaetListe = event.liste;
+      if (event.context === 'ENTITAET') {
+        updates.entitaetListe = event.list;
         updates.aktuellerEntitaetIndex = 0;
         updates.aktuellerFrame = firstFrame;
       } 
-      else if (event.kontext === 'ALLGEMEIN') {
-        updates.allgemeineListe = event.liste;
+      else if (event.context === 'ALLGEMEIN') {
+        updates.allgemeineListe = event.list;
         updates.aktuellerAllgemeinIndex = 0;
+        updates.aktuellerFrame = firstFrame;
+      } 
+      else {
         updates.aktuellerFrame = firstFrame;
       }
 
       return updates;
     }),
-    // Initialisiert den Notfallmodus mit der übergebenen Notfall-Liste
-    initNotfall: assign(({ event }) => {
+    // Initializes emergency mode with the provided emergency list
+    initNotfallModus: assign(({ event }) => {
       if (event.type !== 'NOTFALL_EMPFANGEN') return {};
       
       return {
-        notfallListe: event.notfallListe,
+        notfallListe: event.list,
         aktuellerNotfallIndex: 0,
         anzeigeKontext: 'NOTFALL', 
-        aktuellerFrame: 'BESTAETIGUNG_FRAME'
+        aktuellerFrame: BESTAETIGUNG_FRAME
       };
     }),
-    // ---- Frame-Navigationsaktionen ----
-    // Navigiert zu nächsten/vorherigen Frames durch Aktualisierung der Indizes
+    // ---- Frame Navigation Actions ----
+    // Navigates to next/previous frames by updating indices
     frameNavigation: assign(({ context, event }) => {
       const delta = event.type === 'NAECHSTER_FRAME' ? 1 : -1;
       const active = getActiveContext(context);
@@ -102,7 +109,7 @@ export const frameMachine = setup({
 
       const newIndex = active.index + delta;
 
-      // Grenzprüfung
+      // Boundary check
       if (newIndex < 0 || newIndex >= active.list.length) return {};
 
       return {
@@ -110,8 +117,8 @@ export const frameMachine = setup({
         aktuellerFrame: active.list[newIndex]
       };
     }),
-    // Sucht einen Frame in der aktuellen Liste und aktualisiert den Index und Frame, wenn gefunden
-    sucheFrameInAktuellerListe: assign(({ context, event }) => {
+    // Searches for a frame in the current list and updates the index and frame if found
+    searchFrame: assign(({ context, event }) => {
       if (event.type !== 'SUCHE_FRAME') return {};
       
       const active = getActiveContext(context);
@@ -127,42 +134,42 @@ export const frameMachine = setup({
       }
       return {}; 
     }),
-    // ---- Frame-Sendeaktionen ----
-    // Setzt den aktuellen Frame basierend auf dem aktiven Kontext
-    setaktuellerFrame: assign({
+    // ---- Frame Send Actions ----
+    // Sets the current frame based on the active context
+    setAktuellerFrame: assign({
       aktuellerFrame: ({ context }) => {
         const active = getActiveContext(context);
-        if (!active || !active.list[active.index]) return 'LEERER_FRAME';
+        if (!active || !active.list[active.index]) return LEERER_FRAME;
         return active.list[active.index];
       }
     }),
-    sendeBestaetigungFrameAnUi: assign({ aktuellerFrame: 'BESTAETIGUNG_FRAME' }),
-    sendeLeerenFrameAnUi: assign({ aktuellerFrame: 'LEERER_FRAME' }),
+    sendBestaetigungFrame: assign(() => ({ aktuellerFrame: BESTAETIGUNG_FRAME })),
+    sendLeererFrame: assign({ aktuellerFrame: LEERER_FRAME }),
   },
   
   // ---- Guards ----
-  // Bedingungen, die Übergänge basierend auf Kontext und Events steuern
+  // Conditions that control transitions based on context and events
   guards: {
     "herkunftIstArbeitsModus": ({ context }) => 
       context.herkunftsZustand === 'ArbeitsModus',
-    "herkunftIstInaktiv": ({ context }) => 
+    "herkunftIsInaktiv": ({ context }) => 
       context.herkunftsZustand === 'Inaktiv',
     "isEntitaetKontext": ({ event }) => 
-      event.type === 'LADE_NEUE_LISTE' && event.kontext === 'ENTITAET',
+      event.type === 'LADE_NEUE_LISTE' && event.context === 'ENTITAET',
     "isAllgemeinKontext": ({ event }) => 
-      event.type === 'LADE_NEUE_LISTE' && event.kontext === 'ALLGEMEIN',
-    "isGleichKontext": ({ context, event }) => {
+      event.type === 'LADE_NEUE_LISTE' && event.context === 'ALLGEMEIN',
+    "isSameAnzeigeKontext": ({ context, event }) => {
       if (event.type !== 'LADE_NEUE_LISTE') return false;
-      return context.anzeigeKontext === event.kontext;
+      return context.anzeigeKontext === event.context;
     },
     "isAntwortTrue": ({ event }) => 
-      event.type === 'USER_BESTAETIGT_NOTFALL' && event.bestaetigung === true,
-    "hatNaechstenFrame": ({ context }) => {
+      event.type === 'USER_BESTAETIGT_NOTFALL' && event.accepted === true,
+    "hasNextFrame": ({ context }) => {
       const active = getActiveContext(context);
       if (!active || !active.list.length) return false;
       return active.index < active.list.length - 1;
     },
-    "hatVorherigenFrame": ({ context }) => {
+    "hasPreviousFrame": ({ context }) => {
       const active = getActiveContext(context);
       if (!active || !active.list.length) return false;
       return active.index > 0;
@@ -170,48 +177,48 @@ export const frameMachine = setup({
   },
 
   /**
-   * 3. Maschinendefinition (Basis-Struktur)
-   * Definiert Zustände, Übergänge und globale Events
+   * 3. Machine Definition
+   * Defines states, transitions and global events
    */
 }).createMachine({
     /** @xstate-layout N4IgpgJg5mDOIC5QDMBOBDAtmAsugxgBYCWAdmAMQByA8gCoBiAggDIsD6AojgArNUBxTlQDaABgC6iUAAcA9rGIAXYnNLSQAD0QBmAOwBOAHQ6AbGIM6DpgKxiALAZs6ANCACeiALQAmU6aN7MRsARnMQuz0fMR8dAF84tzQsXAIScgoALQBVACVsgGEAaQBlTjpM4XEpJBB5RRU1DW0EMPsQkwMxPQj-Hps9Vw9vP3sjHx89Q0mZkKd7BKSMbDwiMjAjAElSdABrFQA3ChYmABFOdipObIuWTZK6TmqNeuVVdVqWkJ0zIxtTAxdWJiAEhAAcQ08CDsRhB9mcP267R0DkWIGSKzS6y2O32xCOJ3Ol2ut3ujxEIRqsgUbyan0QIT0pjGIUZ9n8PgiIT8bihMLhCJRemRYgiaIxqTW5Bxe0OFCY2RKJQKAAlWI9RJIXjTGh9QF8wU4TCELFZgvYwWD7LzvJbAj52ZzkQMuqZxctJekNkxUAAjMDKWA4OQQACusAoypVd04SqqWtqr11zQZthsgR08MmVgtFtMNtaYI6QVZYitfgM8JCC0S6I9qy9Rh9-sDwbDEZKhRVFwYuSYOCeCepDXeKda9nsPnGNkdKP0pm++eGCGFY05PiLTh0-z0NgM7pSDexzYDSiDIfD1CYnFVD04uXYvf7g6pdR1o-pCGifiMYJ8LsMYIzCXKFV3GblLWcF0DD-A9MSlb0-VPc92woAA1Ghcm7XJNiEB8nwHZ5E3fOl9QZHoxE6UVHAGGxnAdAsrTGTN9DCJkInsH44M9Y8kNbC8I0JC4rhudg7jvIjh1pPUtAZOY9GNcwgkMGD7F3RiJxMTielMdiZx0HxuKPaUT349sjGEOhNjoa86GOM5hJJMSyRfbUR1I2Tx1sEwwT0CE1InbcfgLNSFJ8Aw2L8cLul8oysRMvizzbcMmzYIQB02Kh7KJETSQkoc33cmSviiYxd0tQY9G6QxIUQAZKIdMJnFMJjrHiWsJWMjYqDkJRkHQAAbAbko7VUYzjTVXyTD8yOhaxxgnUUbDBOxlt0gsvD8wJHFsQEN1ZQYQjihCjB6vrBuGgTIzGzZYzKURKTc6Sx3CP5fOFCKJgMnwNogoxLEmAE7G+sI3Q6+t4u63r+qGkajAAITgJR0DAFQYFIChFXvdh4djGzylwuhLnoZg2Ekwrns-TidDeiqrG5bo2pC-8jGZCZORsWJYhsY7GzOmHLvMxHYGR1HiHRzGygfXGHlswnicYVgWApKaSOKxAAv+w1J0rCxdwiGwCx0Vlf0raJDHZMR9EzXnsX5i64aYUgAC8Awlqhr1vR58L7QiCumjyWgtBrzH0YVTGNvyrcYk1WccTiF1MaIyyO8HD0h07oYdgSmxdt2wAxjCsPvXDsYI1ziKKsdQtZiOLX0Ms64LfwwX+gwoj88FwuFMFbele3YZzp3XfFgvIy7HtfYrqTk0-MFRVhP86MrCLlurAs7Eo6jVMzSxmV7tFSBDOANE6yGntn2afg6MxTWsOwaNqhAvG3MYy1FDlzdsGslnTk7tllPiC+M1PIREsCYOEJpGRmG3L9FmRZ1wQhRLpK0+407wUbKZJKAlgGBzkj+UIKI6KligXoAsow24AjEA4B05g6I-zrH-TBiUUIpUstZWyuD1atDmOmV0vkBhWHXAYDeZYjAmiTnuboVsHA83QTxBKLZsHmRVGSTC9xVTYxyLLKgpwuFjgOmMQhwRQhQNFGQ5cVhjBWlBGCcwjNqFyN-hg3iSjWGwFSiwdKnBMr6M-NEO0oMzAQgXPPJOojW4SIsOCfwO0Bh9yhudQe7Y-FXxWrTXy9NzZM2XBuEw9DORVT-FVJkB9nEKMSQLOGwtRZowLqkzyakaYGScFbB01g-wgVTDTaIM4SyyP3noBJmckmCxSsPfOMkA7cMcDTP8BlOLggMBMEIG9ja118kDXSlYVrDNOMQAuIsmC+hgLAIgA0FCwHqZXSms1ORiIjgZcwydObWmXF4Vkb9bAOnnlmduyyEgJCAA */
-    // Maschinendefinition
+    // Machine definition
     id: 'frameMachine',
     context: initialContext,
     initial: 'Inaktiv',
 
-    // Globale Events
-    // Events, die von jedem Zustand aus verarbeitet werden können
+    // Global Events
+    // Events that can be processed from any state
     on: {
       NOTFALL_EMPFANGEN: {
         target: '.NotfallModus',
-        actions: 'initNotfall',
+        actions: 'initNotfallModus',
       },
       ZURUCKSETZEN: {
         target: '.Inaktiv',
-        actions: assign(initialContext),
+        actions: assign(() => ({ ...initialContext })),
       },
     },
 
     states: {
-      // ---- ZUSTAND 1: INAKTIV ----
-      // Initialer Zustand, wartet auf neue Listen oder Ausschalten
+      // ---- STATE 1: INAKTIV ----
+      // Initial state, waits for new lists or shutdown
       Inaktiv: {
         entry: [ 
-          'sendeLeerenFrameAnUi' , 
+          'sendLeererFrame' , 
           assign({ herkunftsZustand: 'Inaktiv', anzeigeKontext: 'INAKTIV' }),
         ],
         on: {
           LADE_NEUE_LISTE: [
           {
             guard: 'isEntitaetKontext',
-            target: 'ArbeitsModus.ENTITAET',
-            actions: 'setNeueListe',
+            target: 'ArbeitsModus.Entitaet',
+            actions: 'setNewList',
           },
           {
             guard: 'isAllgemeinKontext',
-            target: 'ArbeitsModus.ALLGEMEIN',
-            actions: 'setNeueListe',
+            target: 'ArbeitsModus.Allgemein',
+            actions: 'setNewList',
           }
         ],
           AUSSCHALTEN: {
@@ -220,73 +227,76 @@ export const frameMachine = setup({
         },
       },
 
-      // ---- ZUSTAND 2: ARBEITSMODUS ----
-      // Behandelt Entitäts- und Allgemein-Frames mit Navigation
-      // Verwendet Subzustände für ENTITAET und ALLGEMEIN
-      // sowie einen History-Zustand, um den zuletzt verwendeten Subzustand zu merken
+      // ---- STATE 2: ARBEITSMODUS ----
+      // Handles entity and general frames with navigation
+      // Uses substates for Entitaet and Allgemein
+      // as well as a history state to remember the last used substate
       ArbeitsModus: {
         entry: assign({ herkunftsZustand: 'ArbeitsModus' }),
         on: {
           SCHLIESSEN: { target: 'Inaktiv' },
           SUCHE_FRAME: {
-            actions: 'sucheFrameInAktuellerListe'
+            actions: 'searchFrame'
           },
           NAECHSTER_FRAME: {
-            guard: 'hatNaechstenFrame',
+            guard: 'hasNextFrame',
             actions: 'frameNavigation',
           },
           VORHERIGER_FRAME: {
-            guard: 'hatVorherigenFrame',
+            guard: 'hasPreviousFrame',
             actions: 'frameNavigation',
           },
           LADE_NEUE_LISTE:{ 
-            guard: 'isGleichKontext',   
-            actions: 'setNeueListe',
+            guard: 'isSameAnzeigeKontext',   
+            actions: 'setNewList',
             reenter: true
           },
         },
-        initial: 'ENTITAET',
+        initial: 'Entitaet',
         states: {
-            // --- SUBSTATE: ENTITAET ---
-            // Zeigt Entitäts-Frames mit Navigation
-          ENTITAET: {
-            entry: [assign({ anzeigeKontext: 'ENTITAET' }), 'setaktuellerFrame'],
+            // --- SUBSTATE: Entitaet ---
+            // Displays entity frames with navigation
+          Entitaet: {
+            entry: [assign({ anzeigeKontext: 'ENTITAET' }), 'setAktuellerFrame'],
             on: {
               LADE_NEUE_LISTE:{ 
                 guard: 'isAllgemeinKontext', 
-                target: 'ALLGEMEIN', 
-                actions: 'setNeueListe' 
+                target: 'Allgemein', 
+                actions: 'setNewList' 
               }
             }
           },
-          // --- SUBSTATE: HISTORISCHER_ZUSTAND ---
-            // Shallow-History-Zustand, merkt sich den zuletzt aktiven Subzustand (ENTITAET oder ALLGEMEIN)
-            // Wird genutzt, um nach Verlassen des Notfallmodus wieder in den zuvor verwendeten Subzustand zu springen
+          // --- SUBSTATE: HISTORY_STATE ---
+          /**
+           * HISTORISCHER_ZUSTAND is a shallow history state.
+           * It remembers whether 'Entitaet' or 'Allgemein' was last active within 'ArbeitsModus'.
+           * When exiting and re-entering 'ArbeitsModus' (e.g., after emergency mode), the machine returns to the last used substate.
+           */
           HISTORISCHER_ZUSTAND: {
             type: 'history',
             history: 'shallow',
           },
-          // --- SUBSTATE: ALLGEMEIN ---
-          // Zeigt Allgemeine Frames mit Navigation
-          ALLGEMEIN: {
-            entry: [assign({ anzeigeKontext: 'ALLGEMEIN' }), 'setaktuellerFrame'],
+          // --- SUBSTATE: Allgemein ---
+          // Displays general frames with navigation
+          Allgemein: {
+            entry: [assign({ anzeigeKontext: 'ALLGEMEIN' }), 'setAktuellerFrame'],
             on: {
               LADE_NEUE_LISTE: { 
                 guard: 'isEntitaetKontext', 
-                target: 'ENTITAET', 
-                actions: 'setNeueListe' 
+                target: 'Entitaet', 
+                actions: 'setNewList' 
               }
             }
           }
         }
       },
 
-      // ---- ZUSTAND 3: NOTFALLMODUS ----
-      // Handhabt Notfall-Frames mit Bestätigung und Navigation
+      // ---- STATE 3: EMERGENCY MODE ----
+      // Handles emergency frames with confirmation and navigation
       NotfallModus: {
         initial: 'Bestaetigen',
         entry: assign({ anzeigeKontext: 'NOTFALL' }),
-        // Übergänge zum Verlassen des Notfallmodus basierend auf dem Herkunftszustand
+        // Transitions to exit emergency mode based on source state
         on: {
           SCHLIESSEN: [
             {
@@ -294,16 +304,16 @@ export const frameMachine = setup({
               target: 'ArbeitsModus.HISTORISCHER_ZUSTAND'
             },
             {
-              guard: 'herkunftIstInaktiv',
+              guard: 'herkunftIsInaktiv',
               target: 'Inaktiv'
             }
           ]
         },
         states: {
           // --- SUBSTATE: BESTAETIGEN ---
-          // Fragt den Benutzer, den Notfallmodus zu bestätigen
+          // Asks the user to confirm the emergency mode
           Bestaetigen: {
-            entry: 'sendeBestaetigungFrameAnUi',
+            entry: 'sendBestaetigungFrame',
             on: {
               USER_BESTAETIGT_NOTFALL: [
                 {
@@ -318,31 +328,31 @@ export const frameMachine = setup({
             }
           },
           // --- SUBSTATE: ANZEIGEN ---
-          // Zeigt Notfall-Frames mit Navigation
+          // Displays emergency frames with navigation
           Anzeigen: {
-            entry: 'setaktuellerFrame',
+            entry: 'setAktuellerFrame',
             on: {
               NAECHSTER_FRAME: { 
-                guard: 'hatNaechstenFrame', 
+                guard: 'hasNextFrame', 
                 actions: 'frameNavigation' 
               },
               VORHERIGER_FRAME: { 
-                guard: 'hatVorherigenFrame', 
+                guard: 'hasPreviousFrame', 
                 actions: 'frameNavigation' 
               },
               SUCHE_FRAME: {
-                actions: 'sucheFrameInAktuellerListe'
+                actions: 'searchFrame'
               }
             }
           }
         },
       },
 
-      // ---- ZUSTAND 4: FINAL ----
-      // Finaler Zustand, wenn der Dienst abgeschlossen ist
+      // ---- STATE 4: FINAL ----
+      // Final state when the service is completed
       DienstAbgeschlossen: {
         type: 'final',
-        entry: ['sendeLeerenFrameAnUi', assign(initialContext)],
+        entry: ['sendLeererFrame'],
       }
     },
   });

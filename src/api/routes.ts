@@ -1,44 +1,44 @@
 import { Router } from 'express';
 import * as controller from './controller';
 
-// Erstellt eine neue Router-Instanz
+// Creates a new router instance
 const router = Router();
 
 // ----------------------------------------------------
-// ENDPUNKT-DEFINITIONEN
-// Hier werden die API-Endpunkte definiert und den entsprechenden
-// Controller-Funktionen zugewiesen.
+// ENDPOINT DEFINITIONS
+// API endpoints are defined here and assigned to the corresponding
+// controller functions.
 // ----------------------------------------------------
 
 /**
- * Erstellt eine neue (oder ersetzt eine bestehende) State-Machine-Sitzung.
+ * Creates a new (or replaces an existing) state machine session.
  * POST /api/session/:sessionId
  */
 router.post('/session/:sessionId', controller.createSession);
 
 /**
- * Ruft den aktuellen Zustand (und den aktuellen Frame) einer Sitzung ab.
+ * Retrieves the current state (and current frame) of a session.
  * GET /api/session/:sessionId/state
  */
 router.get('/session/:sessionId/state', controller.getSessionState);
 
 /**
- * Ruft alle aktiven Sitzungen ab.
+ * Retrieves all active sessions.
  * GET /api/session/sessions
  */
 router.get('/session/sessions', controller.getAllSessions);
 
 /**
- * Sendet ein Event an die State Machine, um den Zustand zu ändern.
+ * Sends an event to the state machine to change the state.
  * POST /api/session/:sessionId/event
  */
 router.post('/session/:sessionId/event', controller.sendEvent);
 
 /**
- * Stoppt und löscht eine Sitzung.
+ * Stops and deletes a session.
  * DELETE /api/session/:sessionId
  */
 router.delete('/session/:sessionId', controller.deleteSession);
 
-// Exportiert den konfigurierten Router
+// Exports the configured router
 export const apiRoutes = router;
