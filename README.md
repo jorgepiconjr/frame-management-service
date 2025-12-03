@@ -53,7 +53,7 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
   * **Location:** `/src/api`
   * **Description:** Acts as the entry point for HTTP requests. The `controller.ts` receives requests, validates inputs (like `sessionId` and event payloads), and delegates commands to the Service layer .
 
-### 3\. Service Layer (Facade)
+### 3\. Service Layer
 
   * **Location:** `/src/services`
   * **Description:** The `SessionService` implements the **Singleton & Proxy** design pattern. It acts as a bridge between the Controller and the Model, managing the lifecycle of XState actors using the **Factory Method** pattern and ensuring data isolation between parallel sessions.
