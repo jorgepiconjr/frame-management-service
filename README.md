@@ -83,38 +83,63 @@ The service provides a RESTful API. The most dynamic endpoint is the **Event** e
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/session/:sessionId` | Creates a new session with ID as `:sessionId`. |
-| `GET` | `/api/session/:sessionId/state` | Returns the current snapshot (state & frame). |
-| `POST` | `/api/session/:sessionId/event` | Sends a logic event to the state machine. |
-| `GET` | `/api/session/sessions` | Lists all active sessions. |
-| `DELETE` | `/api/session/:sessionId` | Deletes a session. |
+| Method | Endpoint | Description | Payload |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/session/:sessionId` | Creates a new session with parameter ID as `:sessionId`. | None. Parameter `:sessionId` given in the url.|
+| `GET` | `/api/session/:sessionId/state` | Returns the current snapshot (state & frame). | - |
+| `POST` | `/api/session/:sessionId/event` | Sends a logic event to the state machine. | Depends on the event type; details [here](#event-payload-examples). |
+| `GET` | `/api/session/sessions` | Lists all active sessions. | - |
+| `DELETE` | `/api/session/:sessionId` | Deletes a session. | - |
 
-### Event Payload Examples (`POST .../event`)
+### Event Payload Examples 
+(`/api/session/:sessionId/event`)
 
-The system handles different event types defined in the `FrameEvent` type.
+The system handles different types of events defined in the `FrameEvent` type (in `/src/core/machine.types.ts`), these will be redirected to the Actor Statechart of the session given in the url `/:sessionId/`.
 
-**1. Navigation (Next Frame)**
+#### **0. Data type**
 
+Statechart event types
+```typescript
+const FrameEventTypes = {
+  SCHLIESSEN: 'SCHLIESSEN',
+  ZURUCKSETZEN: 'ZURUCKSETZEN',
+  AUSSCHALTEN: 'AUSSCHALTEN',
+  NAECHSTER_FRAME: 'NAECHSTER_FRAME',
+  VORHERIGER_FRAME: 'VORHERIGER_FRAME',
+  SUCHE_FRAME: 'SUCHE_FRAME',
+  NOTFALL_EMPFANGEN: 'NOTFALL_EMPFANGEN',
+  USER_BESTAETIGT_NOTFALL: 'USER_BESTAETIGT_NOTFALL',
+  LADE_NEUE_LISTE: 'LADE_NEUE_LISTE',
+} as const;
+```
+
+Data type in the payload
+```json
+{
+  "type": "FrameEventTypes",
+  "context": " 'ENTITAET' | 'ALLGEMEIN' ",
+  "list": string[],
+  "accepted": boolean,
+  "frameName": "string"
+}
+```
+
+#### **1. Simple Navigation (Next Frame, Last Frame)**
+
+Next Frame
 ```json
 {
   "type": "NAECHSTER_FRAME"
 }
 ```
-
-**2. Load a New List (Context Initialization)**
-Requires the list data and the context target.
-
+Last Frame
 ```json
 {
-  "type": "LADE_NEUE_LISTE",
-  "context": "ENTITAET",
-  "list": ["FrameA", "FrameB", "FrameC"]
+  "type": "VORHERIGER_FRAME"
 }
 ```
 
-**3. Specific Search (Jump to Frame)**
+#### **2. Specific Search (Jump to Frame)**
 Requires the name of the target frame.
 
 ```json
@@ -124,23 +149,139 @@ Requires the name of the target frame.
 }
 ```
 
-**4. Trigger Emergency**
+#### **3. Load a New List (Context Initialization)**
+Requires the list data and the context (`'ENTITAET' | 'ALLGEMEIN'`) target.
+
+```json
+{
+  "type": "LADE_NEUE_LISTE",
+  "context": "ENTITAET",
+  "list": ["FrameA", "FrameB", "FrameC"]
+}
+```
+
+#### **4. Trigger Emergency**
 Requires the list of emergency frames.
 
 ```json
 {
   "type": "NOTFALL_EMPFANGEN",
-  "list": ["EmergencyInfo1", "EmergencyAction"]
+  "list": ["FrameA", "FrameB"]
 }
 ```
 
-**5. Confirm Emergency**
+#### **5. Confirm Emergency**
 User response to the emergency prompt.
 
 ```json
 {
   "type": "USER_BESTAETIGT_NOTFALL",
   "accepted": true
+}
+```
+
+#### **6. Lifecycle events**
+
+To exit `ArbeitModus` or `NotfallModus`.
+```json
+{
+  "type": "SCHLIESSEN",
+}
+```
+Reset the Statechart with neutral initial values.
+```json
+{
+  "type": "ZURUCKSETZEN",
+}
+```
+Disable the Statechart.
+```json
+{
+  "type": "AUSSCHALTEN",
+}
+```
+
+### Responses
+
+The API returns standard HTTP status codes and JSON bodies .   
+
+#### **1. Success Responses**
+
+Session Creation `(POST ../session/:id)` Returns status `201 (Created)` for new session or `200 (OK)` for recreated session (reseted) with a confirmation message and the initial state.
+```json
+{
+  "message": "Session ID ':id' created.",
+  "cleanSnapshot": {
+    "sessionId": ":id",
+    "currentState": "Inaktiv",
+    "currentFrame": "LEERER_FRAME",
+    "context": {
+      "entitaetListe": [],
+      "allgemeineListe": [],
+      "notfallListe": [],
+      "aktuellerEntitaetIndex": 0,
+      "aktuellerAllgemeinIndex": 0,
+      "aktuellerNotfallIndex": 0,
+      "anzeigeKontext": "INAKTIV",
+      "aktuellerFrame": "LEERER_FRAME",
+      "herkunftsZustand": "Inaktiv"
+    }
+  }
+}
+```
+State Retrieval & Event Processing (`GET ../:id/state`, `POST ../:id/event`) Returns status `200` with the `CleanSnapshot` object.
+
+```json
+{
+  "sessionId": ":id",
+  "currentState": { "ArbeitsModus": "Entitaet" },
+  "currentFrame": "FrameA",
+  "context": {
+    "entitaetListe": ["FrameA", "FrameB"],
+    "aktuellerEntitaetIndex": 0,
+    "anzeigeKontext": "ENTITAET",
+    ...
+  }
+}
+```
+Get All Sessions (`GET ../sessions`) Returns status `200`.
+
+```json
+{
+  "count": 2,
+  "sessions": [
+    { "sessionId": "user-1", "currentFrame": "FrameA", ... },
+    { "sessionId": "user-2", "currentFrame": "LEERER_FRAME", ... }
+  ]
+}
+```
+
+Delete a existing session (`DELETE ../session/:id`) Returns status `200`.
+
+```json
+{
+  "message": "Session ID ':id' successfully deleted."
+}
+```
+
+#### **2. Error Responses**
+
+Client Errors (`4xx`) Occurs if inputs are invalid or sessions are not found.
+
+- `400 Bad Request`: Invalid JSON payload or missing event type.
+
+- `404 Not Found`: `Session ID` does not exist (for `GET/DELETE/EVENT`).
+
+```json
+{
+  "error": "Session with ID 'user-99' not found."
+}
+```
+Server Errors (`5xx`) Occurs if the state machine fails or internal errors happen.
+
+```json
+{
+  "error": "An internal server error occurred."
 }
 ```
 
@@ -161,24 +302,29 @@ Ensure you have the following installed on your machine:
 
 Open your terminal/command prompt and navigate to the project folder.
 
-1.  **Install Dependencies:**
-    Run the following command to download all required libraries defined in `package.json` (including Express, XState, TypeScript, etc.):
-    ```bash
-    npm install
-    ```
-    *This automatically installs:*
-      * `express` (Web Server)
-      * `xstate` (State Management Logic)
-      * `typescript` & `ts-node` (Language support)
-      * `jest` & `supertest` (Testing tools)
-    *Alternatively, you can run it directly using ts-node:*
-    ```bash
-    npm install typescript --save-dev
-    npx tsc --init
-    npm install express@latest xstate@latest
-    npm install @types/node @types/express ts-node-dev --save-dev
-    npm install jest @types/jest ts-jest supertest @types/supertest --save-dev
-    ```
+**Install Dependencies:**
+
+Run the following command to download all required libraries defined in `package.json` (including Express, XState, TypeScript, etc.):
+ 
+```bash
+npm install
+```
+*This automatically installs:*
+
+* `express` (Web Server)
+* `xstate` (State Management Logic)
+* `typescript` & `ts-node` (Language support)
+* `jest` & `supertest` (Testing tools)
+
+*Alternatively, you can run it directly using ts-node:*
+
+```bash
+npm install typescript --save-dev
+npx tsc --init
+npm install express@latest xstate@latest
+npm install @types/node @types/express ts-node-dev --save-dev
+npm install jest @types/jest ts-jest supertest @types/supertest --save-dev
+```
 
 
 ### 3\. Run the Server
@@ -202,7 +348,7 @@ The server will start on **http://localhost:3000**.
 Once the server is running, you can access the graphical Session Inspector to test the software visually.
 
 1.  Open your web browser.
-2.  Go to: `http://localhost:3000/inspector`.
+2.  Go to: **http://localhost:3000/inspector**.
 3.  You can now create sessions and send events using the visual interface.
 
 ### 5\. Run Tests (Optional)
