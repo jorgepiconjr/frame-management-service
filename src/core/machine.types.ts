@@ -90,7 +90,7 @@ export type FrameMachineDefinition = {
 
 /**
  * Defines the clean, serializable snapshot structure
- * sent to the client (CAIS.ME).
+ * sent to the client.
  * This is the 'public' view of the state.
  */
 export interface CleanSnapshot {

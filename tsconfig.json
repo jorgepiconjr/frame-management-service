@@ -9,5 +9,5 @@
     "strict": true,                   // Strenge Typprüfung aktivieren
     "skipLibCheck": true              // Überspringt die Typprüfung von .d.ts-Dateien
   },
-  "include": ["src/**/*"]             // Nur Dateien im src-Ordner kompilieren
+  "include": ["src/**/*", "test/api/controller.test.ts"]             // Nur Dateien im src-Ordner kompilieren
 }

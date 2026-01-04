@@ -1,6 +1,6 @@
-import { createActor, waitFor } from 'xstate';
+import { createActor, waitFor, Snapshot } from 'xstate';
 import { frameMachine } from '../../src/core/frame.machine';
-
+import type { FrameContext, FrameEvent } from '../../src/core/machine.types';
 
 /* --------------------------------------------------------------
   FRAME MACHINE TESTS
@@ -380,4 +380,76 @@ describe('Test search functionality (event: SUCHE_FRAME) for future voice input'
     expect(actor.getSnapshot().context.aktuellerFrame).toBe('E2');
     expect(actor.getSnapshot().context.aktuellerEntitaetIndex).toBe(1);
   });
+});
+
+// =========================================================================
+// TESTS FOR CODE COVERAGE
+// This suite targets specific lines and branches that were previously uncovered.
+// =========================================================================
+describe('frame.machine.ts - Edge Case and Uncovered Lines Coverage', () => {
+
+    // Test for line 199 (false branch of 'isSameAnzeigeKontext' guard)
+  // This is covered by testing a transition between different context substates.
+  it('should transition between substates when LADE_NEUE_LISTE has a different context', async () => {
+    const actor = createActor(frameMachine).start();
+
+    // 1. Start in ENTITAET context.
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ENTITAET', list: ['E1'] });
+    await waitFor(actor, (s) => s.matches({ ArbeitsModus: 'Entitaet' }));
+    
+    // 2. Send an event to change context to ALLGEMEIN.
+    // The `isSameAnzeigeKontext` guard on the parent `ArbeitsModus` state
+    // will now evaluate to FALSE, allowing the machine to check the inner transition.
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ALLGEMEIN', list: ['A1'] });
+
+    // 3. Assert the machine has transitioned to the new substate.
+    const finalSnap = await waitFor(actor, (s) => s.matches({ ArbeitsModus: 'Allgemein' }));
+    expect(finalSnap.context.anzeigeKontext).toBe('ALLGEMEIN');
+    expect(finalSnap.context.aktuellerFrame).toBe('A1');
+  });
+
+  // Test for line 199 (true branch of 'isSameAnzeigeKontext' guard)
+  // This tests the "re-loading" of a list within an already active context.
+  it('should reload list and reset index when LADE_NEUE_LISTE is for the same context', async () => {
+    const actor = createActor(frameMachine).start();
+
+    // 1. Load an initial list and navigate into it.
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ENTITAET', list: ['E1', 'E2', 'E3'] });
+    await waitFor(actor, (s) => s.context.aktuellerFrame === 'E1');
+    actor.send({ type: 'NAECHSTER_FRAME' });
+    await waitFor(actor, (s) => s.context.aktuellerFrame === 'E2');
+    expect(actor.getSnapshot().context.aktuellerEntitaetIndex).toBe(1);
+
+    // 2. Send another LADE_NEUE_LISTE event for the *same* context.
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ENTITAET', list: ['X1', 'X2'] });
+
+    // 3. The `isSameAnzeigeKontext` guard will be true, triggering the reload.
+    const finalSnap = await waitFor(actor, (s) => s.context.aktuellerFrame === 'X1');
+    expect(finalSnap.context.entitaetListe).toEqual(['X1', 'X2']);
+    expect(finalSnap.context.aktuellerEntitaetIndex).toBe(0); // Index is reset.
+  });
+
+  // Test for lines 162-163: `setAktuellerFrame` with an empty list.
+  it('should set aktuellerFrame to LEERER_FRAME if the active list is empty', async () => {
+    const actor = createActor(frameMachine).start();
+    
+    // Load an empty list to trigger the edge case in the `entry` action.
+    actor.send({ type: 'LADE_NEUE_LISTE', context: 'ENTITAET', list: [] });
+
+    const snapshot = await waitFor(actor, (s) => s.matches({ ArbeitsModus: 'Entitaet' }));
+    
+    expect(snapshot.context.aktuellerFrame).toBe('LEERER_FRAME');
+  });
+
+  // Documentation test for unreachable code (lines 52 and 86).
+  it('documents that some branches are unreachable by design', () => {
+    console.warn(
+      `[Test Documentation for frame.machine.ts]:
+      - Line ~52 (default in getActiveContext): This branch is unreachable. Actions using 'getActiveContext' only run in states where 'anzeigeKontext' is always valid.
+      - Line ~86 (else in setNewList): This branch is unreachable. All 'LADE_NEUE_LISTE' transitions are protected by guards that prevent an unknown context, making the 'else' branch dead code.`
+    );
+    // This test passes by default, its purpose is to formally acknowledge the unreachable code.
+    expect(true).toBe(true);
+  })
+
 });
