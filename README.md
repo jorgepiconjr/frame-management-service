@@ -13,9 +13,9 @@
 
 ## About the Software
 
-The **Frame-Management-Service** is a robust, RESTful microservice designed to manage the logic and state of user interactions within information systems. It acts as a central logic engine that handles navigation through lists of information "frames" (templates), ensuring that users see the correct content based on their current context (e.g., an Entity workflow vs. a General workflow).
+The **Frame-Management-Service** is a RESTful Full-Stack service designed to manage the logic and state of user interactions within information systems. It acts as a central logic engine that handles navigation through lists of information "frames" (templates), ensuring that users see the correct content based on their current context (e.g., an Entity workflow vs. a General workflow).
 
-At its core, the software replaces imperative, error-prone logic with a **Statechart-based architecture**. This allows the service to:
+At its core, the software replaces the logic with a **Statechart-based architecture (frameMachine)**. This allows the service to:
 
   * Manage complex state transitions deterministically.
   * Handle high-priority interrupts (such as Emergency modes) instantly via Preemption.
@@ -26,8 +26,6 @@ The service is built to be stateless regarding the connection but stateful regar
 -----
 
 ## Technologies Used
-
-The project utilizes a modern stack for both the backend service and the accompanying visual interface:
 
   * **Backend Runtime:** Node.js
   * **Language:** TypeScript
@@ -58,14 +56,14 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
   * **Location:** `/src/services`
   * **Description:** The `SessionService` implements the **Singleton & Proxy** design pattern. It acts as a bridge between the Controller and the Model, managing the lifecycle of XState actors using the **Factory Method** pattern and ensuring data isolation between parallel sessions.
 
-### 4\. View (GUI & API)
+### 4\. View (GUI)
 
   * **Location:** `/src/ui` (and API Responses)
   * **Description:**
       * **Goal:** Real-time management of the status of each active session in the system. Visualization of the status of each session in the form of a "Card" with data such as `Session-ID`, `State`, `Current Frame` and `context` (internal data handled by Statechart).
       * **Session Inspector (GUI):** A dedicated graphical interface located in `/src/ui`. It consists of `index.html`, `inspector.js`, and `styles.css` . It consumes the API to visualize the real-time state of all active sessions, providing a dashboard for monitoring and debugging.
 
-### UML Diagrams
+### UML Architecture Diagrams
 
 <p align="center">
   <img src="images/cd.png" alt="UML Component Diagram" width="600">
@@ -82,7 +80,7 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
 <p align="center">
   <img src="images/frameMachine.png" alt="frameMachine UML Statechart Diagram" width="600">
   <br>
-  <i>frameMachine UML Statechart Diagram.</i>
+  <i>UML Statechart Diagram (frameMachine Modell).</i>
 </p>
 
 <p align="center">
@@ -92,7 +90,7 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
 </p>
 
 <p align="center">
-  <img src="images/service-kd.png" alt="Service-Schicht UML Class Diagram" width="400">
+  <img src="images/service-kd.png" alt="Service-Schicht UML Class Diagram" width="300">
   <br>
   <i>Service-Schicht UML Class Diagram.</i>
 </p>
@@ -103,6 +101,11 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
   <i>Core-Schicht UML Class Diagram.</i>
 </p>
 
+<p align="center">
+  <img src="images/sendEvent.png" alt="Client event interaction - UML Sequence Diagram" width="600">
+  <br>
+  <i>Client event interaction - UML Sequence Diagram.</i>
+</p>
 -----
 
 ## Key Features
