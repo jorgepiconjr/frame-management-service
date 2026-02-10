@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-1.  [About the Software](#about-the-software)
+1.  [1 - About the Software](#1---about-the-software)
 2.  [Technologies Used](#technologies-used)
 3.  [Architecture Overview](#architecture-overview)
 4.  [Key Features](#key-features)
@@ -11,7 +11,7 @@
 
 -----
 
-## About the Software
+## 1 - About the Software
 
 The **Frame-Management-Service** is a RESTful Full-Stack service designed to manage the logic and state of user interactions within information systems. It acts as a central logic engine that handles navigation through lists of information "frames" (templates), ensuring that users see the correct content based on their current context (e.g., an Entity workflow vs. a General workflow).
 
@@ -106,6 +106,7 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
   <br>
   <i>Client event interaction - UML Sequence Diagram.</i>
 </p>
+
 -----
 
 ## Key Features
