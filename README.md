@@ -65,6 +65,44 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
       * **Goal:** Real-time management of the status of each active session in the system. Visualization of the status of each session in the form of a "Card" with data such as `Session-ID`, `State`, `Current Frame` and `context` (internal data handled by Statechart).
       * **Session Inspector (GUI):** A dedicated graphical interface located in `/src/ui`. It consists of `index.html`, `inspector.js`, and `styles.css` . It consumes the API to visualize the real-time state of all active sessions, providing a dashboard for monitoring and debugging.
 
+### UML Diagrams
+
+<p align="center">
+  <img src="images/cd.png" alt="UML Component Diagram" width="600">
+  <br>
+  <i>UML Component Diagram.</i>
+</p>
+
+<p align="center">
+  <img src="images/classd.png" alt="UML Class Diagram" width="600">
+  <br>
+  <i>UML Class Diagram.</i>
+</p>
+
+<p align="center">
+  <img src="images/frameMachine.png" alt="frameMachine UML Statechart Diagram" width="600">
+  <br>
+  <i>frameMachine UML Statechart Diagram.</i>
+</p>
+
+<p align="center">
+  <img src="images/api-kd.png" alt="API-Schicht UML Class Diagram" width="500">
+  <br>
+  <i>API-Schicht UML Class Diagram.</i>
+</p>
+
+<p align="center">
+  <img src="images/service-kd.png" alt="Service-Schicht UML Class Diagram" width="400">
+  <br>
+  <i>Service-Schicht UML Class Diagram.</i>
+</p>
+
+<p align="center">
+  <img src="images/core-kd.png" alt="Core-Schicht UML Class Diagram" width="600">
+  <br>
+  <i>Core-Schicht UML Class Diagram.</i>
+</p>
+
 -----
 
 ## Key Features
