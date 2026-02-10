@@ -2,12 +2,17 @@
 
 ## Table of Contents
 
-1.  [1 - About the Software](#1---about-the-software)
-2.  [Technologies Used](#technologies-used)
-3.  [Architecture Overview](#architecture-overview)
-4.  [Key Features](#key-features)
-5.  [API Reference](#api-reference)
-6.  [How to Start?](#how-to-start)
+[1 - About the Software](#1---about-the-software)
+
+[2 - Technologies Used](#2---technologies-used)
+
+[3 - Architecture Overview](#3---architecture-overview)
+
+[4 - Key Features](#4---key-features)
+
+[5 - API Reference](#5---api-reference)
+
+[6 - How to Start?](#6---how-to-start)
 
 -----
 
@@ -25,7 +30,7 @@ The service is built to be stateless regarding the connection but stateful regar
 
 -----
 
-## Technologies Used
+## 2 - Technologies Used
 
   * **Backend Runtime:** Node.js
   * **Language:** TypeScript
@@ -37,7 +42,7 @@ The service is built to be stateless regarding the connection but stateful regar
 
 -----
 
-## Architecture Overview
+## 3 - Architecture Overview
 
 The software implements a **Model-View-Controller (MVC)** architecture combined with a strict **Layered Architecture** to ensure modularity and separation of concerns.
 
@@ -109,7 +114,7 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
 
 -----
 
-## Key Features
+## 4 - Key Features
 
   * **Multi-Session Isolation:** Manages multiple concurrent user sessions. Thanks to the **Actor Model**, every session acts as an isolated process in memory; actions in one session do not affect others.
   * **Generic Navigation:** Supports flexible navigation (`NAECHSTER_FRAME`, `VORHERIGER_FRAME`, `SUCHE_FRAME`) through any type of list provided in the context.
@@ -119,7 +124,7 @@ The software implements a **Model-View-Controller (MVC)** architecture combined 
 
 -----
 
-## API Reference
+## 5 - API Reference
 
 The service provides a RESTful API. The most dynamic endpoint is the **Event** endpoint, which accepts various JSON payloads depending on the action required.
 
@@ -329,7 +334,7 @@ Server Errors (`5xx`) Occurs if the state machine fails or internal errors happe
 
 -----
 
-## How to Start?
+## 6 - How to Start?
 
 Follow these steps to set up the environment and run the software locally.
 
